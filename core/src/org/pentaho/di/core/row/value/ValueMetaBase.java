@@ -4456,7 +4456,13 @@ public class ValueMetaBase implements ValueMetaInterface {
                 valtype = ValueMetaInterface.TYPE_INTEGER; // Long can hold up to 18
                 // significant digits
               } else if ( length > 18 ) {
-                valtype = ValueMetaInterface.TYPE_BIGNUMBER;
+                if ( useUnscaledFixedPointNarrowing() &&
+                        matchUnscaledFixedPointNarrowingPrecision( length ) &&
+                        matchUnscaledFixedPointNarrowingPattern( name ) ) {
+                  valtype = ValueMetaInterface.TYPE_INTEGER;
+                } else {
+                  valtype = ValueMetaInterface.TYPE_BIGNUMBER;
+                }
               }
             } else { // we have a precision: keep NUMBER or change to BIGNUMBER?
               if ( length > 15 || precision > 15 ) {
@@ -4905,5 +4911,19 @@ public class ValueMetaBase implements ValueMetaInterface {
       } while ( curPos >= 0 && curPos < stopPos );
     }
     return quotes;
+  }
+
+  protected boolean useUnscaledFixedPointNarrowing() {
+    return EnvUtil.getSystemProperty( "KETTLE_UNSCALED_FIXED_POINT_NARROWING_ENABLE", "Y" ).equalsIgnoreCase( "Y" );
+  }
+
+  protected boolean matchUnscaledFixedPointNarrowingPrecision( int precision ) {
+    String precisions = ',' + EnvUtil.getSystemProperty( "KETTLE_UNSCALED_FIXED_POINT_NARROWING_PRECISION", "19" ) + ',';
+    return precisions.contains( ',' + String.valueOf( precision ) + ',' );
+  }
+
+  protected boolean matchUnscaledFixedPointNarrowingPattern( String columnName ) {
+    String pattern = EnvUtil.getSystemProperty( "KETTLE_UNSCALED_FIXED_POINT_NARROWING_PATTERN", "(?i)[\\w\\W]*ID[\\w\\W]*" );
+    return columnName != null && columnName.matches( pattern );
   }
 }
